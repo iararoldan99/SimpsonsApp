@@ -15,8 +15,6 @@ https://github.com/ExBattou/SimpsonsApp
 **Problema:**
 El bloque `init { return Episode; }` se encuentra fuera del cuerpo de `data class Episode`. En Kotlin, los bloques `init` solo pueden existir **dentro** de una clase. Además, los bloques `init` no permiten la instrucción `return` ya que no retornan ningún valor. Esto es un **error de compilación** que impide que la app compile.
 
-**Concepto de la materia:** Clases en Kotlin, ciclo de vida de inicialización de objetos.
-
 **Solución:** Eliminar el bloque `init` por completo (líneas 13 a 15). Si se requiere validación, debe ubicarse dentro del cuerpo de la clase:
 
 ```kotlin
@@ -44,8 +42,6 @@ data class Episode(
 **Problema:**
 La interfaz `EpisodeRepository` declara `fun get_episodes()` usando snake_case, pero la implementación `EpisodeRepositoryImpl` define `override fun getEpisodes()` con camelCase. En Kotlin, son dos métodos distintos. Por lo tanto, `EpisodeRepositoryImpl` **no implementa** el método requerido por la interfaz, lo que produce un **error de compilación**. Además, el uso de snake_case viola la convención de nombrado de Kotlin.
 
-**Concepto de la materia:** Convenciones de Kotlin, patrón Repository, contrato interfaz/implementación.
-
 **Solución:** Renombrar `get_episodes()` a `getEpisodes()` en la interfaz y actualizar la llamada en el UseCase:
 
 ```kotlin
@@ -64,8 +60,6 @@ return repository.getEpisodes()
 
 **Problema:**
 El builder de Retrofit no incluye la llamada `.baseUrl()`. Retrofit exige obligatoriamente una URL base; sin ella, lanza `IllegalStateException: Base URL required` en tiempo de ejecución y la app **crashea al iniciar**. Agravando el problema, la URL completa fue colocada en la anotación `@GET` de `SimpsonsApi` en lugar de separarse correctamente en base URL y ruta relativa.
-
-**Concepto de la materia:** Retrofit, configuración correcta del cliente HTTP (Clase 7 — Retrofit).
 
 **Solución:**
 
@@ -92,8 +86,6 @@ suspend fun getEpisodes(@Query("page") page: Int): EpisodesResponse
 **Problema:**
 `MainScreenViewModel` no tiene la anotación `@HiltViewModel` ni usa `@Inject constructor`. Sin estas anotaciones, Hilt no puede proveer este ViewModel. Si se intentara obtenerlo con `hiltViewModel()` en un Composable, la app **crashearía en runtime**.
 
-**Concepto de la materia:** Hilt, inyección de dependencias, `@HiltViewModel` (Clase 9 — Hilt).
-
 **Solución:** Agregar las anotaciones de Hilt. O bien eliminar esta clase ya que es un remanente del template inicial que no conecta con la arquitectura real:
 
 ```kotlin
@@ -112,8 +104,6 @@ class MainScreenViewModel @Inject constructor(
 **Problema:**
 `DefaultDataRepository` emite datos hardcodeados que no representan ningún dato real de la app. No está registrada en `DataModule.kt` como proveedor de Hilt, no se usa en ninguna pantalla real y su tipo `Flow<List<String>>` no tiene relación con el modelo de dominio `Episode`. Es código muerto que quedó del template inicial de Android Studio.
 
-**Concepto de la materia:** Patrón Repository, Arquitectura MVVM, separación de capas (Clase 5 — Arquitectura).
-
 **Solución:** Eliminar `DataRepository.kt` y `MainScreenViewModel.kt` ya que son artefactos del template inicial. La arquitectura real ya tiene `EpisodeRepository` con su implementación correcta registrada en `DataModule`.
 
 ---
@@ -131,8 +121,6 @@ if (episodes.loadState.refresh is LoadState.NotLoading && seasons.isEmpty()) {
 ```
 
 Esta llamada a `viewModel.refreshSeasons()` se ejecuta directamente en el cuerpo del Composable durante la composición. En Jetpack Compose, los Composables deben ser **funciones puras** sin efectos secundarios directos: pueden recomponerse múltiples veces por frame y esto causaría llamadas repetidas e incontroladas. La forma correcta es encapsular el efecto en un `LaunchedEffect`.
-
-**Concepto de la materia:** Jetpack Compose, efectos secundarios, `LaunchedEffect` (Clase 3 y 4 — Compose).
 
 **Solución:**
 
@@ -163,8 +151,6 @@ if (episode != null) {
 
 El operador `!!` se usa dentro de un bloque `if (episode != null)`. El compilador no puede hacer smart cast automático porque `episode` es una propiedad delegada por `collectAsState()`. El uso de `!!` es explícitamente desaconsejado en el material de la materia ya que puede lanzar `NullPointerException` y es señal de un manejo incorrecto de nulabilidad.
 
-**Concepto de la materia:** Nulabilidad en Kotlin, operadores seguros `?.` y `?:` (Clase 1 — Kotlin).
-
 **Solución:** Usar una variable local o `let` para acceder de forma segura:
 
 ```kotlin
@@ -192,8 +178,6 @@ import androidx.compose.*
 
 Los imports comodín (`*`) importan todos los símbolos de un paquete. Esto es mala práctica porque genera ambigüedad, dificulta la lectura del código, puede introducir conflictos de nombres no intencionados y hace más lento el análisis del IDE. Todos los símbolos necesarios ya están importados explícitamente en las líneas anteriores.
 
-**Concepto de la materia:** Buenas prácticas de Kotlin (Clase 1 — Introducción a Kotlin).
-
 **Solución:** Eliminar las líneas 9 y 10 (`import androidx.navigation.*` e `import androidx.compose.*`), ya que los imports específicos necesarios están declarados en las líneas 3 a 8 del mismo archivo.
 
 ---
@@ -212,8 +196,6 @@ class EpisodeEntity(   // debería ser "data class"
 ```
 
 Las entidades de Room deben definirse como `data class` y no como `class` regular. Una `data class` genera automáticamente `equals()`, `hashCode()`, `toString()` y `copy()`. Sin estos métodos, las comparaciones de objetos y la detección de cambios en las listas de Paging3 no funcionan correctamente.
-
-**Concepto de la materia:** Room Database, entidades, `data class` en Kotlin (Clase 8 — Room).
 
 **Solución:** Cambiar `class` por `data class` en la línea 7:
 
@@ -248,8 +230,6 @@ val client = OkHttpClient.Builder()
 ```
 
 El interceptor de logging está configurado con nivel `BODY` (que registra headers y body completo de todas las requests y responses HTTP) y se añade **de forma incondicional**, incluyendo los builds de release. Esto expone en los logs del dispositivo información sensible de las llamadas a la API. El logging HTTP solo debe activarse en builds de debug. Además, en `build.gradle.kts` la opción `buildConfig = false` impide usar `BuildConfig.DEBUG`, lo que agrava el problema.
-
-**Concepto de la materia:** Retrofit, buenas prácticas de seguridad, configuración por build type (Clase 7 — Retrofit).
 
 **Solución:** Activar `buildConfig = true` en `build.gradle.kts` y condicionar el interceptor:
 
